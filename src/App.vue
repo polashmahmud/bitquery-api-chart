@@ -1,55 +1,51 @@
 <template>
     <div id="app">
         <trading-vue :data="this.$data"></trading-vue>
+        <br><br>
+        <table id="customers" v-if="lastTen.length">
+            <tr>
+                <th>minute</th>
+                <th>open</th>
+                <th>high</th>
+                <th>low</th>
+                <th>close</th>
+                <th>volume</th>
+            </tr>
+            <tr v-for="(item, index) in lastTen" :key="index">
+                <td>{{ item[0] }}</td>
+                <td>{{ item[1] }}</td>
+                <td>{{ item[2] }}</td>
+                <td>{{ item[3] }}</td>
+                <td>{{ item[4] }}</td>
+                <td>{{ item[5] }}</td>
+            </tr>
+        </table>
     </div>
 </template>
 
 <script>
 import TradingVue from 'trading-vue-js';
+import {GET_COIN_BARS} from "./Bitquery";
 
 export default {
     name: 'App',
     components: {TradingVue},
     data() {
         return {
-            ohlcv: [
-                [1551128400000, 33, 37.1, 14, 14, 196],
-                [1551132000000, 13.7, 30, 6.6, 30, 206],
-                [1551135600000, 29.9, 33, 21.3, 21.8, 74],
-                [1551139200000, 21.7, 25.9, 18, 24, 140],
-                [1551142800000, 24.1, 24.1, 24, 24.1, 29],
-            ]
+            ohlcv: [],
+            lastTen: [],
         }
     },
-    mounted() {
+    created() {
         this.getData();
+
+        // setInterval(() => {
+        //     this.getData();
+        // }, 5000)
     },
     methods: {
         getData() {
-            const query = `
-                 {
-                  ethereum(network: bsc) {
-                    dexTrades(
-                      options: {asc: "timeInterval.minute"}
-                      date: {since: "2021-06-20T07:23:21.000Z", till: "2021-06-23T15:23:21.000Z"}
-                      exchangeAddress: {is: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"}
-                      baseCurrency: {is: "0x2170ed0880ac9a755fd29b2688956bd959f933f8"},
-                      quoteCurrency: {is: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"},
-                      tradeAmountUsd: {gt: 10}
-                    )
-                    {
-                      timeInterval {
-                        minute(count: 15, format: "%Y-%m-%dT%H:%M:%SZ")
-                      }
-                      volume: quoteAmount
-                      high: quotePrice(calculate: maximum)
-                      low: quotePrice(calculate: minimum)
-                      open: minimum(of: block, get: quote_price)
-                      close: maximum(of: block, get: quote_price)
-                    }
-                  }
-                }
-              `;
+            const query = GET_COIN_BARS;
             const url = "https://graphql.bitquery.io/";
             const opts = {
                 method: "POST",
@@ -64,7 +60,22 @@ export default {
             fetch(url, opts)
                 .then(res => res.json())
                 .then(response => {
-                    console.log(response.data.ethereum)
+                    let data = response.data.ethereum.dexTrades;
+                    console.log(data)
+                    const cdata = data.map(d => {
+                        return [
+                            Date.parse(d.timeInterval.minute),
+                            parseFloat(d.open),
+                            parseFloat(d.high),
+                            parseFloat(d.low),
+                            parseFloat(d.close),
+                            parseFloat(d.volume)
+                        ]
+                    });
+                    this.ohlcv = cdata;
+
+                    this.lastTen = cdata.slice(-5);
+
                 })
                 .catch(console.error);
         }
@@ -72,6 +83,27 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
+#customers {
+    font-family: Arial, Helvetica, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
 
+#customers td, #customers th {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+#customers tr:nth-child(even){background-color: #f2f2f2;}
+
+#customers tr:hover {background-color: #ddd;}
+
+#customers th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: left;
+    background-color: #04AA6D;
+    color: white;
+}
 </style>
