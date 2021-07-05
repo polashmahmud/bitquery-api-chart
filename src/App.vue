@@ -22,6 +22,10 @@
 
         <trading-vue
             :data="this.$data"
+            title-txt="Coinomic 🔥"
+            :width="1200"
+            :height="600"
+            :toolbar="true"
         ></trading-vue>
     </div>
 </template>
@@ -47,6 +51,11 @@ export default {
         this.getCoinInfo();
         this.getData();
         this.getAllAddress();
+    },
+    mounted() {
+        setInterval(() => {
+             this.getData();
+        }, 10000)
     },
     methods: {
         changeAddress(address) {
